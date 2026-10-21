@@ -70,18 +70,20 @@ net, adapt_s, n_trainable = models.finetune(net, my_cell_capacity[:60], my_cell_
 preds = models.forecast(net, my_cell_capacity[:60], steps=60)
 ```
 
-Measured on the held-out cell B0007 (never seen in pretraining), start cycle 52:
+Validated with a **leave-one-cell-out protocol** (each cell held out in turn, 16 adaptations total):
 
-| Mode | Capacity MAE | Violation rate V | RUL error | Adaptation time |
+| Mode | Mean MAE (Ah) | RUL availability | V (max) | Mean adapt time |
 |---|---|---|---|---|
-| From scratch (200 epochs) | 0.2346 Ah | 0.017 | no crossing | 3.53 s |
-| Pretrained zero-shot | 0.5592 Ah | 0.000 | 32 cyc | 0 s |
-| **Pretrained + head fine-tune (frozen body)** | **0.0575 Ah** | **0.000** | **6 cyc** | **0.056 s** |
+| From scratch (200 epochs) | 0.210 | **1 of 4** | 0.355 | 2.85 s |
+| Pretrained zero-shot | 0.335 | **4 of 4** | 0.000 | 0 s |
+| **Head fine-tune (frozen body)** | **0.221** | **4 of 4** | **0.000** | **0.20 s** |
+| Full fine-tune (30 epochs) | 0.288 | 4 of 4 | 0.000 | 0.42 s |
 
-Frozen-body transfer is **4.1× more accurate and 63× faster** than from-scratch training on the
-held-out cell; full fine-tuning matched head-only, confirming the body layers transfer. The
-dashboard defaults to this mode ("Pretrained + fine-tune") and falls back to from-scratch
-training automatically if the checkpoint is absent.
+The honest reading: from-scratch training wins raw capacity MAE on 3 of 4 cells but **fails the
+actual prognostic task — it produces no RUL in 3 of 4 cells and violates physics up to V = 0.355**.
+Transfer buys what a maintenance decision needs: RUL availability (4/4), zero violations, and an
+order of magnitude less adaptation time, at comparable capacity MAE. The dashboard defaults to
+"Pretrained + fine-tune" and falls back to from-scratch automatically if the checkpoint is absent.
 
 ## Repository layout
 

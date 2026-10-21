@@ -176,7 +176,7 @@ def finetune(net, train_q, train_T=None, freeze_body=True, W=8, epochs=30, lr=1e
     torch.manual_seed(seed); np.random.seed(seed)
     net = net.to(dev)
     if freeze_body:
-        for p in net[1].parameters():
+        for p in net[0].parameters():  # net[0] = LSTM body; net[1] = passthrough (no params); net[2] = head
             p.requires_grad = False
     trainable = [p for p in net.parameters() if p.requires_grad]
     n_train = sum(p.numel() for p in trainable)

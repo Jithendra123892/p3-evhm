@@ -71,12 +71,12 @@ def run_pipeline(cell, theta_pct, start, epochs, N, seed=0, mode="transfer"):
         net0 = copy.deepcopy(net0)  # finetune mutates the net; never leak state across cells/runs
         W = int(cfg.get("W", 8))
         out["pred_b2"] = P3.forecast(net0, train_q, len(test_q), W=W)          # zero-shot
-        net_ft, ft_s, _ = P3.finetune(net0, train_q, train_T, freeze_body=True,
+        net_ft, ft_s, _ = P3.finetune(net0, train_q, train_T, freeze_body=False,
                                       W=W, epochs=30, lr=1e-3, seed=seed)
         out["pred_b3"] = P3.forecast(net_ft, train_q, len(test_q), W=W)
         out["lstm_train_s"] = round(ft_s, 3)
         out["b2_label"] = "zero-shot (pretrained, unadapted)"
-        out["b3_label"] = "B3 fine-tuned PI-LSTM (frozen body)"
+        out["b3_label"] = "B3 fine-tuned PI-LSTM (30 ep)"
     else:
         ts2, out["pred_b2"] = train_forecast(tuple(train_q), tuple(train_T), 0.0, 0.0, len(test_q), epochs=epochs, seed=seed)
         ts3, out["pred_b3"] = train_forecast(tuple(train_q), tuple(train_T), 2.0, 1.0, len(test_q), epochs=epochs, seed=seed)

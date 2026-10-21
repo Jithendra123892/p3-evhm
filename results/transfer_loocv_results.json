@@ -1,0 +1,210 @@
+{
+  "B0005": {
+    "theta_pct": 70,
+    "true_eol_cycle": 125,
+    "start": 75,
+    "true_rul": 50,
+    "scratch": {
+      "name": "from_scratch_200ep",
+      "mae": 0.2116,
+      "rmse": 0.231,
+      "V": 0.355,
+      "rul_err": null,
+      "adapt_s": 1.654
+    },
+    "zero_shot": {
+      "name": "zero_shot",
+      "mae": 0.2897,
+      "rmse": 0.3434,
+      "V": 0.0,
+      "rul_err": 28,
+      "adapt_s": 0.0
+    },
+    "finetune": {
+      "name": "head_finetune_frozen_30ep",
+      "mae": 0.1923,
+      "rmse": 0.2457,
+      "V": 0.0,
+      "rul_err": 20,
+      "adapt_s": 0.121
+    },
+    "full_finetune": {
+      "name": "full_finetune_30ep",
+      "mae": 0.509,
+      "rmse": 0.5456,
+      "V": 0.0,
+      "rul_err": 41,
+      "adapt_s": 0.245
+    },
+    "invariants": {
+      "body_unchanged_after_head_ft": true,
+      "head_only_trainable_33": true,
+      "full_ft_changes_body": true,
+      "deterministic": true,
+      "base_not_mutated": true,
+      "transfer_rul_available_3x3": true,
+      "transfer_zero_violations": true,
+      "headft_speedup_over_2x": true
+    },
+    "cell_wall_s": 32.3
+  },
+  "B0006": {
+    "theta_pct": 70,
+    "true_eol_cycle": 109,
+    "start": 65,
+    "true_rul": 44,
+    "scratch": {
+      "name": "from_scratch_200ep",
+      "mae": 0.2201,
+      "rmse": 0.2474,
+      "V": 0.0,
+      "rul_err": null,
+      "adapt_s": 1.47
+    },
+    "zero_shot": {
+      "name": "zero_shot",
+      "mae": 0.3255,
+      "rmse": 0.3838,
+      "V": 0.0,
+      "rul_err": 24,
+      "adapt_s": 0.0
+    },
+    "finetune": {
+      "name": "head_finetune_frozen_30ep",
+      "mae": 0.4021,
+      "rmse": 0.4602,
+      "V": 0.0,
+      "rul_err": 28,
+      "adapt_s": 0.103
+    },
+    "full_finetune": {
+      "name": "full_finetune_30ep",
+      "mae": 0.344,
+      "rmse": 0.4064,
+      "V": 0.0,
+      "rul_err": 24,
+      "adapt_s": 0.207
+    },
+    "invariants": {
+      "body_unchanged_after_head_ft": true,
+      "head_only_trainable_33": true,
+      "full_ft_changes_body": true,
+      "deterministic": true,
+      "base_not_mutated": true,
+      "transfer_rul_available_3x3": true,
+      "transfer_zero_violations": true,
+      "headft_speedup_over_2x": true
+    },
+    "cell_wall_s": 5.5
+  },
+  "B0007": {
+    "theta_pct": 80,
+    "true_eol_cycle": 86,
+    "start": 52,
+    "true_rul": 34,
+    "scratch": {
+      "name": "from_scratch_200ep",
+      "mae": 0.2346,
+      "rmse": 0.2562,
+      "V": 0.017,
+      "rul_err": null,
+      "adapt_s": 2.618
+    },
+    "zero_shot": {
+      "name": "zero_shot",
+      "mae": 0.5592,
+      "rmse": 0.573,
+      "V": 0.0,
+      "rul_err": 32,
+      "adapt_s": 0.0
+    },
+    "finetune": {
+      "name": "head_finetune_frozen_30ep",
+      "mae": 0.0773,
+      "rmse": 0.0973,
+      "V": 0.0,
+      "rul_err": 42,
+      "adapt_s": 0.119
+    },
+    "full_finetune": {
+      "name": "full_finetune_30ep",
+      "mae": 0.0575,
+      "rmse": 0.0709,
+      "V": 0.0,
+      "rul_err": 6,
+      "adapt_s": 0.206
+    },
+    "invariants": {
+      "body_unchanged_after_head_ft": true,
+      "head_only_trainable_33": true,
+      "full_ft_changes_body": true,
+      "deterministic": true,
+      "base_not_mutated": true,
+      "transfer_rul_available_3x3": true,
+      "transfer_zero_violations": true,
+      "headft_speedup_over_2x": true
+    },
+    "cell_wall_s": 10.3
+  },
+  "B0018": {
+    "theta_pct": 70,
+    "true_eol_cycle": 97,
+    "start": 58,
+    "true_rul": 39,
+    "scratch": {
+      "name": "from_scratch_200ep",
+      "mae": 0.1721,
+      "rmse": 0.1843,
+      "V": 0.027,
+      "rul_err": null,
+      "adapt_s": 5.638
+    },
+    "zero_shot": {
+      "name": "zero_shot",
+      "mae": 0.1654,
+      "rmse": 0.2215,
+      "V": 0.0,
+      "rul_err": 13,
+      "adapt_s": 0.0
+    },
+    "finetune": {
+      "name": "head_finetune_frozen_30ep",
+      "mae": 0.2113,
+      "rmse": 0.2742,
+      "V": 0.0,
+      "rul_err": 16,
+      "adapt_s": 0.473
+    },
+    "full_finetune": {
+      "name": "full_finetune_30ep",
+      "mae": 0.2415,
+      "rmse": 0.2999,
+      "V": 0.0,
+      "rul_err": 20,
+      "adapt_s": 1.003
+    },
+    "invariants": {
+      "body_unchanged_after_head_ft": true,
+      "head_only_trainable_33": true,
+      "full_ft_changes_body": true,
+      "deterministic": true,
+      "base_not_mutated": true,
+      "transfer_rul_available_3x3": true,
+      "transfer_zero_violations": true,
+      "headft_speedup_over_2x": true
+    },
+    "cell_wall_s": 16.7
+  },
+  "_summary": {
+    "mean_mae_ratio": 1.46,
+    "mean_speed_ratio": 8.0,
+    "ft_mae_per_cell": [
+      0.509,
+      0.344,
+      0.0575,
+      0.2415
+    ],
+    "all_invariants": true,
+    "total_wall_s": 64.8
+  }
+}

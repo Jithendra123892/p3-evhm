@@ -103,8 +103,9 @@ chk("finding: 3-seed repeatability", "3-seed repeatability" in txt)
 chk("Fig. 2 caption", "Fig. 2. Measured trajectories" in txt)
 
 chk("transfer: pretrained mode subsection", "E. Pretrained transfer mode" in txt)
-chk("transfer: 4.1x lower MAE", "4.1x lower" in txt)
-chk("transfer: 63x faster", "63x faster" in txt)
+chk("transfer: 12 transfer runs RUL", "all 12 transfer runs" in txt)
+chk("transfer: scratch RUL only 1 of 4", "only 1 of 4 held-out cells" in txt)
+chk("transfer: Table V present", "TABLE V. Leave-one-cell-out transfer validation" in txt)
 chk("transfer: frozen body", "freezes every LSTM body layer" in txt)
 
 # References

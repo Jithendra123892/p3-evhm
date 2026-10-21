@@ -3,7 +3,7 @@
     "mae": 0.23462425996204464,
     "rmse": 0.25618326961862536,
     "V": 0.017241379310344827,
-    "adapt_s": 3.527,
+    "adapt_s": 6.82,
     "rul_err": null,
     "pf_rul_err": null,
     "pf_interval": [
@@ -24,23 +24,23 @@
     ]
   },
   "c_head_finetune_30ep": {
-    "mae": 0.05751467603115361,
-    "rmse": 0.0709280048428678,
+    "mae": 0.07734338183791771,
+    "rmse": 0.09727738647423907,
     "V": 0.0,
-    "adapt_s": 0.056,
-    "rul_err": 6,
-    "pf_rul_err": 37,
+    "adapt_s": 0.106,
+    "rul_err": 42,
+    "pf_rul_err": 42,
     "pf_interval": [
-      37.0,
+      41.0,
       114.0
     ]
   },
-  "c_trainable_params": 4513,
+  "c_trainable_params": 33,
   "d_full_finetune_30ep": {
     "mae": 0.05751467603115361,
     "rmse": 0.0709280048428678,
     "V": 0.0,
-    "adapt_s": 0.058,
+    "adapt_s": 0.196,
     "rul_err": 6,
     "pf_rul_err": 37,
     "pf_interval": [

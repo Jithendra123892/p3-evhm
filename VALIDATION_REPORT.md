@@ -93,17 +93,17 @@ B3 PI-LSTM: mean MAE 0.288 Ah, mean V 0.324 across seeds 0/1/2 — seed variance
 ### 4.4 Cross-cell generalization (E1)
 Train on B0005+B0006 pooled -> test on held-out cells: B0007 (start 52, EOL 86): B3 MAE 0.612 Ah, V 0.000; B0018 (start 58, EOL 97): B3 MAE 0.453 Ah, V 0.000. Physics constraints held on out-of-distribution cells even though accuracy degraded, as expected.
 
-### 4.5 Transfer learning (pretrained checkpoint, held-out cell B0007)
-Fleet checkpoint: hidden-32 PI-LSTM, 279 pooled cycles from B0005/B0006/B0018 (first 60% each), B0007 fully held out; shipped at `p3evhm/pretrained/pi_lstm_base_v1.pt` (21 KB). Adaptation freezes all LSTM body layers and fine-tunes only the head (30 epochs, lr 1e-3). Measured at B0007, 80% EOL, start cycle 52 (true RUL 34):
+### 4.5 Transfer learning (leave-one-cell-out protocol, 16 adaptations)
+Fleet checkpoint: hidden-32 PI-LSTM, 279 pooled cycles from three cells (first 60% each), evaluated cell fully held out; shipped at `p3evhm/pretrained/pi_lstm_base_v1.pt` (21 KB). Adaptation: freeze all LSTM body layers and fine-tune only the head (30 epochs, lr 1e-3), or full fine-tune (30 epochs). Prediction start at 60% of life. Mean over the 4 LOOCV cells:
 
-| Mode | MAE (Ah) | V | LSTM RUL err | PF RUL err | Adapt time |
-|---|---|---|---|---|---|
-| From scratch (200 ep) | 0.2346 | 0.017 | none | none | 3.53 s |
-| Zero-shot | 0.5592 | 0.000 | 32 | 10 | 0 s |
-| Head fine-tune (frozen) | 0.0575 | 0.000 | 6 | 37 | 0.056 s |
-| Full fine-tune (30 ep) | 0.0575 | 0.000 | 6 | 37 | 0.058 s |
+| Mode | Mean MAE (Ah) | RUL availability | V (max) | Mean adapt time (s) |
+|---|---|---|---|---|
+| From scratch (200 ep) | 0.210 | 1 of 4 | 0.355 | 2.85 |
+| Zero-shot | 0.335 | 4 of 4 | 0.000 | 0 |
+| Head fine-tune (frozen body) | 0.221 | 4 of 4 | 0.000 | 0.20 |
+| Full fine-tune (30 ep) | 0.288 | 4 of 4 | 0.000 | 0.42 |
 
-Head fine-tune = 4.1x lower MAE, 63x faster than from-scratch, with zero violations. The fine-tuned slope prior remains shallow for the PF (err 37) — decline-prior floor applies. Results: `results/transfer_results.json`; script `temp/test_transfer.py`; pretraining `temp/pretrain_base.py`.
+Per-cell detail (MAE / RUL err): B0005 scratch 0.2116/no-RUL vs head-FT 0.1923/20; B0006 scratch 0.2201/no-RUL vs zero-shot 0.3255/24; B0007 scratch 0.2346/no-RUL vs full-FT 0.0575/6; B0018 scratch 0.1721/no-RUL vs zero-shot 0.1654/13. All invariants passed: body weights bit-identical under frozen fine-tune, head-only trainable count 33, full fine-tune does change the body, deterministic under fixed seed, base net never mutated, transfer RUL available 12/12 with zero violations. Results: `results/transfer_loocv_results.json`; script `tests/test_transfer.py`; pretraining `temp/pretrain_base.py`.
 
 ## 5. What this proves (and does not prove)
 
@@ -124,6 +124,7 @@ Not proven / honest limitations (all stated in the paper):
 
 1. **Temperature-prior shape bug (kernel v1):** the prior term g had length n while the predicted-step difference had length n-1, crashing the first Kaggle run at 35 s. Fixed (`g[1:]` alignment) in kernel v2 and the local script; v1's log is retained.
 2. **RUL-convention slips (kernel v3 + local rerun):** audit found (a) the LSTM/linear crossing index compared against `true_cross[0]+1` (a +1 bias) and (b) the particle filter initialized its state at cycle start-1 without observing the start-cycle measurement (another +1 bias). Both fixed to one clean convention: crossing index i means RUL = i cycles after start, and the PF performs a weighted-resample observation update on the start-cycle measurement before propagating. Both environments were fully re-run with the corrected code (local full protocol + Kaggle kernel v3); every number in this report and in the paper comes from the corrected runs. Effect size: RUL error means shifted by about 1 cycle (18.7-18.8 -> 18.6-18.8); violation rates, MAE, coverage, and GPU scaling conclusions unchanged.
+3. **Freeze-index bug (caught by the LOOCV invariant test):** `models.finetune` froze `net[1]` (a parameterless passthrough layer) instead of `net[0]` (the LSTM body), so the first "frozen-body" transfer runs actually trained all layers — the tell was head-FT and full-FT returning identical numbers. Fixed (`net[0]`); the LOOCV protocol then verified body weights bit-identical after frozen fine-tune, head-only trainable count 33, and full fine-tune changing the body. All transfer numbers in this report and the paper (Table V) come from the corrected LOOCV runs (`results/transfer_loocv_results.json`, script `tests/test_transfer.py`), which also replaced the earlier single-cell overclaim (4.1x/63x) with the honest 4-cell result: transfer buys RUL availability (4/4 vs 1/4) and zero violations, not raw MAE superiority.
 
 ## 7. Reproduction
 

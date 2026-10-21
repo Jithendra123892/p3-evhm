@@ -1,0 +1,13 @@
+# large raw data (download from NASA PCoE or Kaggle; telemetry.csv sample IS included)
+data/*.mat
+# python
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+# experiment bulk
+results/preliminary_arrays.npz
+temp/__pycache__/
+# streamlit
+.streamlit/secrets.toml

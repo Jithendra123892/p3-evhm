@@ -1,0 +1,16 @@
+{
+  "id": "jithendramaddala/p3-evhm-gpu-run",
+  "title": "P3 EVHM GPU Run",
+  "code_file": "P3-EVHM_kaggle.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_internet": "false",
+  "dataset_sources": [
+    "ckskaggle/li-ion-battery-dataset-from-nasa-pcoe"
+  ],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}

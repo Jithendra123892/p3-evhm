@@ -1,0 +1,144 @@
+{
+  "B0005": {
+    "B1_linear": {
+      "mae": 0.031983025641637984,
+      "rmse": 0.03421379220816168,
+      "rul_err": 12,
+      "cov": null,
+      "width": null,
+      "V": 0.0,
+      "t": 0.16144013404846191
+    },
+    "B2_lstm": {
+      "mae": 0.3112821834184101,
+      "rmse": 0.3187673247922582,
+      "rul_err": null,
+      "cov": null,
+      "width": null,
+      "V": 0.7352941176470589,
+      "t": 106.04121589660645
+    },
+    "B3_pi_lstm": {
+      "mae": 0.10398799479595336,
+      "rmse": 0.11295603807307468,
+      "rul_err": 15,
+      "cov": null,
+      "width": null,
+      "V": 0.0,
+      "t": 57.723230838775635
+    },
+    "B5_phys_pf": {
+      "mae": null,
+      "rmse": null,
+      "rul_err": 7,
+      "cov": 1.0,
+      "width": 54.0,
+      "V": 0.0,
+      "t": 0.1644296646118164,
+      "rul_median": 18,
+      "interval": [
+        7.0,
+        61.0
+      ]
+    },
+    "B4_lstm_pf": {
+      "mae": null,
+      "rmse": null,
+      "rul_err": 23,
+      "cov": 1.0,
+      "width": 43.0,
+      "V": 0.0,
+      "t": 0.017331600189208984,
+      "rul_median": 48,
+      "interval": [
+        25.0,
+        68.0
+      ]
+    },
+    "B6_p3evhm_cpu": {
+      "mae": null,
+      "rmse": null,
+      "rul_err": 9,
+      "cov": 1.0,
+      "width": 51.0,
+      "V": 0.0,
+      "t": 0.028598785400390625,
+      "rul_median": 16,
+      "interval": [
+        7.0,
+        58.0
+      ]
+    }
+  },
+  "B0007": {
+    "B1_linear": {
+      "mae": 0.029680213116292185,
+      "rmse": 0.0351851810553101,
+      "rul_err": 13,
+      "cov": null,
+      "width": null,
+      "V": 0.0,
+      "t": 0.0
+    },
+    "B2_lstm": {
+      "mae": 0.2875717236127581,
+      "rmse": 0.3014165139278819,
+      "rul_err": null,
+      "cov": null,
+      "width": null,
+      "V": 0.18518518518518517,
+      "t": 38.03647756576538
+    },
+    "B3_pi_lstm": {
+      "mae": 0.21707254842730084,
+      "rmse": 0.23502858495438614,
+      "rul_err": null,
+      "cov": null,
+      "width": null,
+      "V": 0.2037037037037037,
+      "t": 32.879501819610596
+    },
+    "B5_phys_pf": {
+      "mae": null,
+      "rmse": null,
+      "rul_err": 9,
+      "cov": 1.0,
+      "width": 85.0,
+      "V": 0.0,
+      "t": 0.05012679100036621,
+      "rul_median": 35,
+      "interval": [
+        15.0,
+        100.0
+      ]
+    },
+    "B4_lstm_pf": {
+      "mae": null,
+      "rmse": null,
+      "rul_err": null,
+      "cov": null,
+      "width": null,
+      "V": 0.0,
+      "t": 0.03599071502685547,
+      "rul_median": null,
+      "interval": [
+        null,
+        null
+      ]
+    },
+    "B6_p3evhm_cpu": {
+      "mae": null,
+      "rmse": null,
+      "rul_err": null,
+      "cov": null,
+      "width": null,
+      "V": 0.0,
+      "t": 0.03447985649108887,
+      "rul_median": null,
+      "interval": [
+        null,
+        null
+      ]
+    }
+  }
+}

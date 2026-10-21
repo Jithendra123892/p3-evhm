@@ -77,12 +77,15 @@ def pi_lstm_forecast(train_q, train_T=None, steps=60, lam1=2.0, lam2=1.0, W=8, h
 
 
 def pf_rul(q0, slope_mu, slope_sd, eol, steps, N=2000, proc=0.003, seed=0, obs0=None,
-           obs_sigma=0.01, device="numpy", return_traj=False):
+           obs_sigma=0.01, device="numpy", return_traj=False, slope_floor=None):
     """Particle-filter RUL estimation (Eq. 6-8).
 
     q0: capacity at the start cycle; obs0: measured capacity at the start cycle (recommended);
     slope_mu/slope_sd: decline-rate prior (Ah/cycle); eol: EOL capacity threshold;
     steps: horizon length; N: particle count.
+    slope_floor: optional physics-based minimum decline rate (Ah/cycle). Decline rates below the
+    floor are raised to it (conservative fusion with a physics estimate, e.g. the training-tail
+    linear slope), guaranteeing the particle cloud can reach the EOL threshold on slow-prior cells.
     Returns (rul_median, rul_lo, rul_hi, elapsed_s[, median_trajectory]) or (None, None, None, dt) if no crossing.
     device="cuda" runs the particle math on the GPU via PyTorch CUDA operations.
     """
@@ -91,6 +94,8 @@ def pf_rul(q0, slope_mu, slope_sd, eol, steps, N=2000, proc=0.003, seed=0, obs0=
         rng = np.random.default_rng(seed)
         qi = np.clip(rng.normal(q0, 0.01, N), eol, None)
         di = np.clip(np.abs(rng.normal(slope_mu, slope_sd, N)), 1e-5, None)
+        if slope_floor is not None and slope_floor > 0:
+            di = np.maximum(di, float(slope_floor))
         if obs0 is not None:
             wts = np.exp(-((obs0 - qi) ** 2) / (2 * obs_sigma ** 2))
             if wts.sum() > 0:
@@ -115,6 +120,8 @@ def pf_rul(q0, slope_mu, slope_sd, eol, steps, N=2000, proc=0.003, seed=0, obs0=
     gen = torch.Generator(device=dev.type).manual_seed(seed)
     qi = torch.clamp(torch.normal(q0, 0.01, (N,), device=dev, generator=gen), min=eol)
     di = torch.clamp(torch.normal(slope_mu, slope_sd, (N,), device=dev, generator=gen).abs(), min=1e-5)
+    if slope_floor is not None and slope_floor > 0:
+        di = torch.maximum(di, torch.tensor(float(slope_floor), device=dev))
     if obs0 is not None:
         wts = torch.exp(-((float(obs0) - qi) ** 2) / (2 * obs_sigma ** 2))
         if wts.sum() > 0:

@@ -105,6 +105,15 @@ Fleet checkpoint: hidden-32 PI-LSTM, 279 pooled cycles from three cells (first 6
 
 Per-cell detail (MAE / RUL err): B0005 scratch 0.2116/no-RUL vs head-FT 0.1923/20; B0006 scratch 0.2201/no-RUL vs zero-shot 0.3255/24; B0007 scratch 0.2346/no-RUL vs full-FT 0.0575/6; B0018 scratch 0.1721/no-RUL vs zero-shot 0.1654/13. All invariants passed: body weights bit-identical under frozen fine-tune, head-only trainable count 33, full fine-tune does change the body, deterministic under fixed seed, base net never mutated, transfer RUL available 12/12 with zero violations. Results: `results/transfer_loocv_results.json`; script `tests/test_transfer.py`; pretraining `temp/pretrain_base.py`.
 
+### 4.6 Decline-prior floor sweep (transfer path, 8 early-start configurations)
+The B6/transfer fused path fails at early starts when the LSTM-derived decline prior is shallower than the true decline. A physics-based floor (the training-tail linear decline, `slope_floor` option in `p3evhm.models.pf_rul`) was swept at multipliers 0/0.25/0.5/0.75/1.0x on 8 early-start configurations (4 cells x {40%, 60%}) using the fine-tuned pretrained checkpoint:
+
+| Floor multiplier | none | 0.25x | 0.5x | 0.75x | 1.0x |
+|---|---|---|---|---|---|
+| Mean \|RUL err\| (cyc) | 23.9 | 25.0 | 24.6 | **18.6** | 24.1 |
+
+A 0.75x floor gives the best mean and rescues the worst case (B0006@40%: 44 -> 10 cycles) but degrades 2 of 8 configurations where the model correctly learned slower decline (e.g. B0018@40%: 11 -> 20 at 1.0x). Availability stayed 8/8 throughout. Conclusion: fixed floors are cell-dependent; per-cell adaptive floor selection remains future work. Results: `results/prior_floor_results.json`; script `tests/test_prior_floor.py`.
+
 ## 5. What this proves (and does not prove)
 
 Proven (measured, both environments unless noted):

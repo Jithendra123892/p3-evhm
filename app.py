@@ -240,6 +240,25 @@ with tabs[2]:
     except Exception as e:
         st.error(f"results file not found: {e}")
     st.caption("Full per-config results: results/full_results.json (local), kernel_out/p3evhm_results.json (T4). VALIDATION_REPORT.md has provenance: two byte-verified data sources, SHA-256 logged.")
+    st.subheader("Transfer (leave-one-cell-out, 16 adaptations)")
+    st.table(pd.DataFrame({
+        "Mode": ["From scratch (200 ep)", "Pretrained zero-shot", "Head fine-tune (frozen body)", "Full fine-tune (30 ep)"],
+        "Mean MAE (Ah)": ["0.210", "0.335", "0.221", "0.288"],
+        "RUL availability": ["1 of 4", "4 of 4", "4 of 4", "4 of 4"],
+        "V (max)": ["0.355", "0.000", "0.000", "0.000"],
+        "Mean adapt time (s)": ["2.85", "0", "0.20", "0.42"],
+    }))
+    st.caption("Each cell held out in turn; checkpoint pretrained on the other three. Transfer buys RUL availability "
+               "and zero physics violations at ~14x less adaptation time; from-scratch wins raw MAE on 3/4 cells but "
+               "produces no RUL there. Source: results/transfer_loocv_results.json.")
+    st.subheader("Decline-prior floor sweep (transfer path, 8 early-start configs)")
+    st.table(pd.DataFrame({
+        "Floor multiplier": ["none", "0.25x physics", "0.5x physics", "0.75x physics", "1.0x physics"],
+        "Mean |RUL err| (cyc)": ["23.9", "25.0", "24.6", "18.6", "24.1"],
+    }))
+    st.caption("A 0.75x physics floor gives the best mean and rescues the worst case (44 -> 10 cycles) but degrades "
+               "2 of 8 configs where the model correctly learned slower decline - fixed floors are cell-dependent; "
+               "per-cell adaptive selection is future work. Source: results/prior_floor_results.json.")
 
 with tabs[3]:
     st.subheader("Measured GPU scaling of the particle filter (Tesla T4, kernel v3)")

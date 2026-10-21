@@ -1,0 +1,59 @@
+{
+  "a_from_scratch_200ep": {
+    "mae": 0.23462425996204464,
+    "rmse": 0.25618326961862536,
+    "V": 0.017241379310344827,
+    "adapt_s": 3.527,
+    "rul_err": null,
+    "pf_rul_err": null,
+    "pf_interval": [
+      null,
+      null
+    ]
+  },
+  "b_zero_shot": {
+    "mae": 0.5592086667066279,
+    "rmse": 0.5730430337569449,
+    "V": 0.0,
+    "adapt_s": 0.0,
+    "rul_err": 32,
+    "pf_rul_err": 10,
+    "pf_interval": [
+      11.0,
+      96.77499999999964
+    ]
+  },
+  "c_head_finetune_30ep": {
+    "mae": 0.05751467603115361,
+    "rmse": 0.0709280048428678,
+    "V": 0.0,
+    "adapt_s": 0.056,
+    "rul_err": 6,
+    "pf_rul_err": 37,
+    "pf_interval": [
+      37.0,
+      114.0
+    ]
+  },
+  "c_trainable_params": 4513,
+  "d_full_finetune_30ep": {
+    "mae": 0.05751467603115361,
+    "rmse": 0.0709280048428678,
+    "V": 0.0,
+    "adapt_s": 0.058,
+    "rul_err": 6,
+    "pf_rul_err": 37,
+    "pf_interval": [
+      37.0,
+      114.0
+    ]
+  },
+  "d_trainable_params": 4513,
+  "context": {
+    "cell": "B0007",
+    "theta_pct": 80,
+    "start": 52,
+    "true_rul": 34,
+    "true_eol_cycle": 86
+  }
+}

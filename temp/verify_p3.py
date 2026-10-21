@@ -102,6 +102,11 @@ chk("cross-cell finding", "Cross-cell generalization" in txt)
 chk("finding: 3-seed repeatability", "3-seed repeatability" in txt)
 chk("Fig. 2 caption", "Fig. 2. Measured trajectories" in txt)
 
+chk("transfer: pretrained mode subsection", "E. Pretrained transfer mode" in txt)
+chk("transfer: 4.1x lower MAE", "4.1x lower" in txt)
+chk("transfer: 63x faster", "63x faster" in txt)
+chk("transfer: frozen body", "freezes every LSTM body layer" in txt)
+
 # References
 import re
 ref_nums = re.findall(r"^\[(\d+|26b)\]", txt, re.M)

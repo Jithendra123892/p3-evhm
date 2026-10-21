@@ -132,6 +132,75 @@ def pf_rul(q0, slope_mu, slope_sd, eol, steps, N=2000, proc=0.003, seed=0, obs0=
     return (int(med), float(lo), float(hi), dt)
 
 
+def save_pretrained(net, path, config=None):
+    """Save a pretrained PI-LSTM checkpoint (state_dict + architecture config)."""
+    import os
+    cfg = config or {}
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    torch.save({"state_dict": net.state_dict(), "config": cfg}, path)
+    return path
+
+
+def load_pretrained(path, device="auto"):
+    """Load a checkpoint saved by save_pretrained. Returns (net, config).
+
+    The checkpoint's config supplies W/hidden so the architecture always matches the weights.
+    """
+    dev = _resolve_device(device)
+    ckpt = torch.load(path, map_location=dev, weights_only=False)
+    cfg = ckpt.get("config", {})
+    hidden = int(cfg.get("hidden", 32)); W = int(cfg.get("W", 8))
+    net = nn.Sequential(nn.LSTM(1, hidden, batch_first=True), _LastState(), nn.Linear(hidden, 1)).to(dev)
+    net.load_state_dict(ckpt["state_dict"])
+    net.eval()
+    cfg["device"] = str(dev)
+    return net, cfg
+
+
+def finetune(net, train_q, train_T=None, freeze_body=True, W=8, epochs=30, lr=1e-3,
+             lam1=2.0, lam2=1.0, seed=0, device="auto"):
+    """Adapt a pretrained net to a new cell WITHOUT training from scratch.
+
+    freeze_body=True freezes every LSTM body layer (requires_grad=False) and adapts only the
+    output head on the new cell's early cycles - seconds instead of a full training run, and it
+    protects the fleet-learned temporal features from catastrophic forgetting.
+    Returns (net, elapsed_s, n_trainable_params).
+    """
+    q = np.asarray(train_q, dtype=float)
+    dev = _resolve_device(device)
+    if train_T is None:
+        train_T = np.full(len(q), 25.0)
+    T = np.asarray(train_T, dtype=float)
+    if len(q) < W + 2:
+        raise ValueError(f"need at least W+2={W+2} training cycles, got {len(q)}")
+    torch.manual_seed(seed); np.random.seed(seed)
+    net = net.to(dev)
+    if freeze_body:
+        for p in net[1].parameters():
+            p.requires_grad = False
+    trainable = [p for p in net.parameters() if p.requires_grad]
+    n_train = sum(p.numel() for p in trainable)
+    X = np.lib.stride_tricks.sliding_window_view(q, W + 1)
+    Xt = torch.tensor(X[:, :W], dtype=torch.float32, device=dev).unsqueeze(-1)
+    Yt = torch.tensor(X[:, -1], dtype=torch.float32, device=dev)
+    last = torch.tensor(X[:, W - 1], dtype=torch.float32, device=dev)
+    Tt = torch.tensor(T[W - 1:-1], dtype=torch.float32, device=dev)
+    dT = -(q[1:] - q[:-1])
+    A = float(np.polyfit((T[1:] - np.mean(T))[1:], dT[1:], 1)[0]) if len(dT) > 10 else 0.0
+    g = torch.clamp(A * (Tt - Tt.mean()), min=0.0)
+    opt = torch.optim.Adam(trainable, lr=lr)
+    mse = nn.MSELoss()
+    t0 = time.time()
+    for _ in range(epochs):
+        opt.zero_grad()
+        out = net(Xt).squeeze(-1)
+        loss = mse(out, Yt) + lam1 * torch.relu(out - last).mean() + lam2 * ((out[:-1] - out[1:]) - g[1:]).pow(2).mean()
+        loss.backward(); opt.step()
+    dt = time.time() - t0
+    net.eval()
+    return net, dt, n_train
+
+
 def violation_rate(pred):
     """Eq. (8): fraction of predicted steps that increase capacity (physically implausible)."""
     p = np.asarray(pred, dtype=float)

@@ -43,8 +43,14 @@ def pf_rul(q0, slope_mu, slope_sd, eol, steps, N=5000, proc=0.003, seed=0, obs0=
                                       seed=seed, obs0=obs0, return_traj=True)
     return med, lo, hi, dt, traj
 
+PRETRAINED_PATH = os.path.join(BASE, "p3evhm", "pretrained", "pi_lstm_base_v1.pt")
+
+@st.cache_resource(show_spinner=False)
+def load_pretrained_net():
+    return P3.load_pretrained(PRETRAINED_PATH, device="cpu")
+
 @st.cache_data(show_spinner=True)
-def run_pipeline(cell, theta_pct, start, epochs, N, seed=0):
+def run_pipeline(cell, theta_pct, start, epochs, N, seed=0, mode="transfer"):
     d = DF[DF.cell == cell].sort_values("cycle")
     q = d.capacity.values; T = d.temp.fillna(25).values
     eol = theta_pct / 100.0 * RATED
@@ -57,10 +63,26 @@ def run_pipeline(cell, theta_pct, start, epochs, N, seed=0):
     # B1 linear
     w = 20; sl, ic = np.polyfit(np.arange(s - w, s), train_q[-w:], 1); sl = min(sl, -1e-4)
     out["pred_lin"] = ic + sl * np.arange(s, len(q))
-    # B2 / B3 LSTMs (training + recursive forecast inside the cached function)
-    ts2, out["pred_b2"] = train_forecast(tuple(train_q), tuple(train_T), 0.0, 0.0, len(test_q), epochs=epochs, seed=seed)
-    ts3, out["pred_b3"] = train_forecast(tuple(train_q), tuple(train_T), 2.0, 1.0, len(test_q), epochs=epochs, seed=seed)
-    out["lstm_train_s"] = round(ts3, 2)
+    # B2 / B3 LSTMs
+    if mode == "transfer" and os.path.exists(PRETRAINED_PATH):
+        # pretrained fleet checkpoint -> zero-shot (reference) + frozen-body head fine-tune (PI model)
+        net0, cfg = load_pretrained_net()
+        import copy
+        net0 = copy.deepcopy(net0)  # finetune mutates the net; never leak state across cells/runs
+        W = int(cfg.get("W", 8))
+        out["pred_b2"] = P3.forecast(net0, train_q, len(test_q), W=W)          # zero-shot
+        net_ft, ft_s, _ = P3.finetune(net0, train_q, train_T, freeze_body=True,
+                                      W=W, epochs=30, lr=1e-3, seed=seed)
+        out["pred_b3"] = P3.forecast(net_ft, train_q, len(test_q), W=W)
+        out["lstm_train_s"] = round(ft_s, 3)
+        out["b2_label"] = "zero-shot (pretrained, unadapted)"
+        out["b3_label"] = "B3 fine-tuned PI-LSTM (frozen body)"
+    else:
+        ts2, out["pred_b2"] = train_forecast(tuple(train_q), tuple(train_T), 0.0, 0.0, len(test_q), epochs=epochs, seed=seed)
+        ts3, out["pred_b3"] = train_forecast(tuple(train_q), tuple(train_T), 2.0, 1.0, len(test_q), epochs=epochs, seed=seed)
+        out["lstm_train_s"] = round(ts3, 2)
+        out["b2_label"] = "B2 data-only LSTM"
+        out["b3_label"] = "B3 PI-LSTM"
     # PF on the PI-LSTM decline prior (B6 live) and the physics prior (B5)
     sl5 = abs((train_q[-40:][0] - train_q[-1]) / 40)
     sl6 = abs((out["pred_b3"][-1] - out["pred_b3"][0]) / max(len(out["pred_b3"]) - 1, 1))
@@ -85,8 +107,14 @@ with st.sidebar:
     max_start = EOL_CYCLE[cell] - 2
     start = st.slider("Prediction start cycle", 15, max_start, max(int(round(EOL_CYCLE[cell] * 0.6)), 15))
     N = st.select_slider("Particles N", [1000, 5000, 20000, 100000], value=5000)
-    epochs = st.select_slider("LSTM epochs (quick demo vs fuller training)", [40, 80, 200], value=200)
-    st.caption("First run per configuration trains live (~10-30 s on CPU). Repeats are cached and instant. "
+    mode = "transfer" if st.radio("Model mode", ["Pretrained + fine-tune (fast)", "From scratch"], index=0) \
+        .startswith("Pretrained") else "scratch"
+    if mode == "transfer" and not os.path.exists(PRETRAINED_PATH):
+        st.warning("Pretrained checkpoint not found - falling back to from-scratch training.")
+        mode = "scratch"
+    epochs = st.select_slider("LSTM epochs (from-scratch mode only; fine-tune uses 30)", [40, 80, 200], value=200)
+    st.caption("Pretrained mode loads the fleet checkpoint (3 NASA cells) and adapts only the output head to the "
+               "selected cell in a fraction of a second. From-scratch trains the PI-LSTM live. "
                "The paper's GPU timings were measured on a Kaggle Tesla T4 (Table IV).")
 
 tabs = st.tabs(["Start Here (read first)", "Live Prediction", "Validation Grid (40 runs)", "GPU Scaling (Tesla T4)", "Agent Architecture", "About"])
@@ -149,7 +177,7 @@ with tabs[5]:
     if not below:
         st.warning(f"{cell} never reaches the {theta}% threshold in this dataset — switch to 80% for this cell.")
     else:
-        R = run_pipeline(cell, int(theta), int(start), int(epochs), int(N))
+        R = run_pipeline(cell, int(theta), int(start), int(epochs), int(N), mode=mode)
         c1, c2, c3, c4 = st.columns(4)
         soh = R["soh_now"]
         state = ("Healthy" if soh > 90 else "Ageing" if soh > 80 else "Replace soon" if soh > 70 else "End of life")
@@ -163,7 +191,7 @@ with tabs[5]:
         else:
             c2.metric("Predicted RUL", "no crossing", "particles above EOL", delta_color="off")
             c3.metric("95% prediction interval", "—")
-        c4.metric("Physics violation rate V", f"PI-LSTM {R['V_b3']:.3f}", f"data-only LSTM {R['V_b2']:.3f}", delta_color="off")
+        c4.metric("Physics violation rate V", f"PI-LSTM {R['V_b3']:.3f}", f"{R.get('b2_label', 'data-only LSTM')} {R['V_b2']:.3f}", delta_color="off")
         # risk alert
         if R["rul_med"] is not None and R["true_rul"]:
             margin = R["rul_lo"]
@@ -177,8 +205,8 @@ with tabs[5]:
         fig, ax = plt.subplots(figsize=(11, 4.2), dpi=120)
         ax.plot(range(1, n + 1), R["q"], "k-", lw=1.6, label="measured capacity")
         ax.axhline(eol_ah, color="crimson", ls="--", lw=1.1, label=f"EOL threshold ({theta}% = {eol_ah:.2f} Ah)")
-        ax.plot(range(s0, n + 1), R["pred_b2"], color="tab:orange", lw=1.1, alpha=0.85, label="B2 data-only LSTM")
-        ax.plot(range(s0, n + 1), R["pred_b3"], color="tab:green", lw=1.1, alpha=0.85, label="B3 PI-LSTM")
+        ax.plot(range(s0, n + 1), R["pred_b2"], color="tab:orange", lw=1.1, alpha=0.85, label=R.get("b2_label", "B2 data-only LSTM"))
+        ax.plot(range(s0, n + 1), R["pred_b3"], color="tab:green", lw=1.1, alpha=0.85, label=R.get("b3_label", "B3 PI-LSTM"))
         ax.plot(range(s0, n + 1), R["pred_lin"], color="tab:blue", lw=1.0, alpha=0.7, label="B1 linear")
         if R["rul_med"] is not None:
             ax.plot(range(s0, n + 1), R["pf_traj"], color="tab:purple", lw=1.5, ls="-.", label="PF median trajectory (B6 live)")

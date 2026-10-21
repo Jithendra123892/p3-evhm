@@ -93,6 +93,18 @@ B3 PI-LSTM: mean MAE 0.288 Ah, mean V 0.324 across seeds 0/1/2 — seed variance
 ### 4.4 Cross-cell generalization (E1)
 Train on B0005+B0006 pooled -> test on held-out cells: B0007 (start 52, EOL 86): B3 MAE 0.612 Ah, V 0.000; B0018 (start 58, EOL 97): B3 MAE 0.453 Ah, V 0.000. Physics constraints held on out-of-distribution cells even though accuracy degraded, as expected.
 
+### 4.5 Transfer learning (pretrained checkpoint, held-out cell B0007)
+Fleet checkpoint: hidden-32 PI-LSTM, 279 pooled cycles from B0005/B0006/B0018 (first 60% each), B0007 fully held out; shipped at `p3evhm/pretrained/pi_lstm_base_v1.pt` (21 KB). Adaptation freezes all LSTM body layers and fine-tunes only the head (30 epochs, lr 1e-3). Measured at B0007, 80% EOL, start cycle 52 (true RUL 34):
+
+| Mode | MAE (Ah) | V | LSTM RUL err | PF RUL err | Adapt time |
+|---|---|---|---|---|---|
+| From scratch (200 ep) | 0.2346 | 0.017 | none | none | 3.53 s |
+| Zero-shot | 0.5592 | 0.000 | 32 | 10 | 0 s |
+| Head fine-tune (frozen) | 0.0575 | 0.000 | 6 | 37 | 0.056 s |
+| Full fine-tune (30 ep) | 0.0575 | 0.000 | 6 | 37 | 0.058 s |
+
+Head fine-tune = 4.1x lower MAE, 63x faster than from-scratch, with zero violations. The fine-tuned slope prior remains shallow for the PF (err 37) — decline-prior floor applies. Results: `results/transfer_results.json`; script `temp/test_transfer.py`; pretraining `temp/pretrain_base.py`.
+
 ## 5. What this proves (and does not prove)
 
 Proven (measured, both environments unless noted):

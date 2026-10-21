@@ -34,8 +34,9 @@ class LastState(nn.Module):
 def train_forecast(_q, _T, lam1, lam2, steps, hidden=24, epochs=80, W=8, lr=5e-3, seed=0):
     # canonical math lives in the p3evhm package; this wrapper only adds Streamlit caching
     q = np.asarray(_q, dtype=float); T = np.asarray(_T, dtype=float)
-    return P3.pi_lstm_forecast(q, T, steps=steps, lam1=lam1, lam2=lam2, W=W, hidden=hidden,
-                               epochs=epochs, lr=lr, seed=seed, return_train_time=True)
+    preds, dt = P3.pi_lstm_forecast(q, T, steps=steps, lam1=lam1, lam2=lam2, W=W, hidden=hidden,
+                                    epochs=epochs, lr=lr, seed=seed, return_train_time=True)
+    return dt, preds
 
 def pf_rul(q0, slope_mu, slope_sd, eol, steps, N=5000, proc=0.003, seed=0, obs0=None):
     med, lo, hi, dt, traj = P3.pf_rul(q0, slope_mu, slope_sd, eol, steps, N=N, proc=proc,

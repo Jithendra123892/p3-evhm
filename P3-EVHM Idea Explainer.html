@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P3-EVHM — the idea, in six steps</title>
+<style>
+  :root{
+    --bg:#0d1421; --ink:#eaf1fb; --muted:#93a7c4; --dim:#5f7396; --line:#22314e;
+    --acc:#3ddc97; --data:#4cc3ff; --warn:#f6c453; --bad:#ff6b6b;
+    --mono:ui-monospace,'Cascadia Mono',Consolas,monospace;
+    --sans:'Segoe UI',system-ui,sans-serif;
+  }
+  *{margin:0;box-sizing:border-box}
+  html,body{height:100%;background:var(--bg);overflow:hidden}
+  body{font-family:var(--sans);color:var(--ink)}
+  #stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform-origin:center}
+  .slide{position:absolute;inset:0;padding:90px 120px 120px;display:none;flex-direction:column}
+  .slide.on{display:flex}
+  .kicker{font-family:var(--mono);font-size:22px;letter-spacing:4px;color:var(--acc);text-transform:uppercase;margin-bottom:18px}
+  h2{font-size:64px;font-weight:650;letter-spacing:-1px;line-height:1.08;margin-bottom:26px}
+  h2 em{font-style:normal;color:var(--acc)}
+  .lead{font-size:30px;color:var(--muted);max-width:1300px;line-height:1.5}
+  .say{position:absolute;left:120px;right:120px;bottom:64px;border-left:4px solid var(--acc);
+       padding:14px 22px;background:#111c30;border-radius:0 10px 10px 0;font-size:24px;line-height:1.5;color:#cfe0f5}
+  .say b{color:var(--acc)}
+  .say .tag{font-family:var(--mono);font-size:16px;color:var(--acc);letter-spacing:2px;display:block;margin-bottom:6px}
+  .pageno{position:absolute;right:60px;bottom:28px;font-family:var(--mono);font-size:20px;color:var(--dim)}
+  .hint{position:absolute;left:60px;bottom:28px;font-family:var(--mono);font-size:18px;color:var(--dim)}
+  .num{position:absolute;top:80px;right:120px;font-family:var(--mono);font-size:150px;font-weight:700;
+       color:transparent;-webkit-text-stroke:2px #24365a;line-height:1}
+  canvas{display:block}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:70px;margin-top:20px}
+  .card{background:#111c30;border:1px solid var(--line);border-radius:18px;padding:36px 40px}
+  .card h3{font-size:34px;margin-bottom:12px}
+  .card p{font-size:24px;color:var(--muted);line-height:1.5}
+  .ok{color:var(--acc)} .bad{color:var(--bad)} .mono{font-family:var(--mono)}
+  table{border-collapse:collapse;width:100%;font-size:27px;margin-top:10px}
+  td{padding:14px 18px;border-bottom:1px solid var(--line)}
+  td:last-child{text-align:right;font-family:var(--mono);color:var(--acc)}
+  td:first-child{color:var(--muted)}
+  .big-row{display:flex;gap:60px;margin-top:34px}
+  .stat .v{font-family:var(--mono);font-size:70px;font-weight:700;color:var(--acc)}
+  .stat .l{font-size:23px;color:var(--muted);margin-top:4px}
+  .flow{display:flex;align-items:center;gap:30px;margin-top:44px}
+  .fnode{background:#111c30;border:1px solid var(--line);border-radius:16px;padding:26px 34px;text-align:center}
+  .fnode .t{font-size:27px;font-weight:600}
+  .fnode .d{font-size:20px;color:var(--muted);margin-top:6px}
+  .arrow{font-size:44px;color:var(--acc)}
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- 1 -->
+  <section class="slide on">
+    <div class="kicker">P3-EVHM · final-year project</div>
+    <h2>Your EV battery is dying <em>silently</em>.<br>We built the instrument that sees it coming.</h2>
+    <p class="lead">A framework that watches a battery's live voltage, current and temperature,
+      learns its exact ageing pattern, and predicts <b style="color:var(--ink)">how many charge cycles are left</b>
+      — with an honest uncertainty range, on a GPU, in milliseconds.</p>
+    <div class="big-row">
+      <div class="stat"><div class="v">NASA</div><div class="l">validated on real cell data</div></div>
+      <div class="stat"><div class="v">40</div><div class="l">measured runs, 2 machines</div></div>
+      <div class="stat"><div class="v">16.5×</div><div class="l">GPU speedup, measured</div></div>
+      <div class="stat"><div class="v">MIT</div><div class="l">public framework on GitHub</div></div>
+    </div>
+    <div class="say"><span class="tag">SAY</span>
+      "Sir, every EV battery degrades, but today's battery management only shows a charge percentage.
+      <b>We built a prognostic instrument</b> that reads the battery's live signals and predicts how many
+      cycles remain before it must be replaced — with a confidence interval, not a guess."</div>
+  </section>
+
+  <!-- 2 -->
+  <section class="slide">
+    <div class="num">02</div>
+    <div class="kicker">the problem</div>
+    <h2>Capacity fade is invisible until <em>it's too late</em>.</h2>
+    <p class="lead">A lithium cell loses capacity with every cycle — slowly at first, then it hits a knee and drops fast.
+      The dashboard shows 80% right up to the cliff. Watch:</p>
+    <canvas id="c2" width="1620" height="420" style="margin-top:30px"></canvas>
+    <div class="say"><span class="tag">SAY</span>
+      "This is real behaviour from NASA's cell-ageing data. The red line is the replacement threshold.
+      A normal dashboard shows the battery is fine — <b>until it suddenly isn't</b>. Our model's job is to
+      see the knee coming and warn before the red line."</div>
+  </section>
+
+  <!-- 3 -->
+  <section class="slide">
+    <div class="num">03</div>
+    <div class="kicker">the input</div>
+    <h2>The battery itself is the sensor: <em>live data</em> every cycle.</h2>
+    <p class="lead">While the EV drives and charges, the cell streams measurements. Our ingestion agent
+      validates every record; the feature agent turns them into sliding windows for the model.</p>
+    <div class="flow">
+      <div class="fnode"><div class="t">Car battery</div><div class="d">the cell under test</div></div>
+      <div class="arrow">→</div>
+      <div class="fnode"><div class="t mono" id="liveV">4.20 V</div><div class="d">voltage</div></div>
+      <div class="fnode"><div class="t mono" id="liveI">−2.00 A</div><div class="d">current</div></div>
+      <div class="fnode"><div class="t mono" id="liveT">24.0 °C</div><div class="d">temperature</div></div>
+      <div class="fnode"><div class="t mono" id="liveC">2.000 Ah</div><div class="d">capacity / cycle</div></div>
+      <div class="arrow">⇒</div>
+      <div class="fnode" style="border-color:var(--acc)"><div class="t" style="color:var(--acc)">p3evhm model</div><div class="d">our framework</div></div>
+    </div>
+    <div class="say"><span class="tag">SAY</span>
+      "No extra hardware — the battery's own telemetry is the sensor. In our framework this is
+      <b>agent A1 and A2</b>: they validate the stream and build the training windows. This runs
+      right now in our live dashboard on real NASA PCoE cell data."</div>
+  </section>
+
+  <!-- 4 -->
+  <section class="slide">
+    <div class="num">04</div>
+    <div class="kicker">the idea — our contribution</div>
+    <h2>Teach the network the <em>laws of physics</em>, then let it learn.</h2>
+    <div class="cols">
+      <div class="card">
+        <h3><span class="bad">✗</span> A normal LSTM</h3>
+        <p>Learn from data alone — and it cheerfully predicts the battery <b>gaining</b> capacity overnight.
+          In our measured grid it broke physics in up to 73% of its steps and often never produced a life estimate at all.</p>
+      </div>
+      <div class="card" style="border-color:var(--acc)">
+        <h3><span class="ok">✓</span> Our physics-informed LSTM</h3>
+        <p>The training loss carries two laws from electrochemistry: <b>capacity can never rise</b>,
+          and decay must follow an Arrhenius temperature rule. Measured effect:
+          violations <span class="mono">0.366 → 0.076</span>, accuracy up, on both machines.</p>
+      </div>
+    </div>
+    <p class="lead" style="margin-top:34px">Then a <b style="color:var(--ink)">particle filter</b> runs 5,000 simulated
+      futures of that learned model — so instead of one number, sir gets a <b style="color:var(--ink)">distribution</b>:
+      median life, plus the 95% range maintenance should plan around.</p>
+    <div class="say"><span class="tag">SAY</span>
+      "That is the novelty, sir. Others published physics-informed LSTMs <b>without</b> the filter, and
+      LSTM-plus-filter papers <b>without</b> physics — one of them literally lists our physics constraints as
+      future work. We are the first to put all four pieces — physics learning, filtering, GPU parallelism,
+      and the benchmark — in one framework."</div>
+  </section>
+
+  <!-- 5 -->
+  <section class="slide">
+    <div class="num">05</div>
+    <div class="kicker">the output</div>
+    <h2>What comes out: a life estimate <em>you can act on</em>.</h2>
+    <canvas id="c5" width="1620" height="520" style="margin-top:26px"></canvas>
+    <div class="say"><span class="tag">SAY</span>
+      "Green trace: measured capacity. Dark line: our physics-informed forecast.
+      Each dot is one simulated future from the particle filter — where the dots cross the red line
+      is that future's end of life. The model reports the median and the 95% range —
+      <b>that range is the maintenance schedule</b>: when its lower bound gets close, the alert fires."</div>
+  </section>
+
+  <!-- 6 -->
+  <section class="slide">
+    <div class="num">06</div>
+    <div class="kicker">the proof & the deliverables</div>
+    <h2>Everything here is <em>measured</em>, on real data, twice.</h2>
+    <table>
+      <tr><td>Physics constraints cut implausible predictions (Tesla T4 grid)</td><td>0.366 → 0.076</td></tr>
+      <tr><td>Physics + filter produced a RUL estimate</td><td>20 / 20 configs, both machines</td></tr>
+      <tr><td>Mean RUL error · 95% interval coverage</td><td>18.6–18.8 cyc · 0.85</td></tr>
+      <tr><td>GPU particle engine speedup (500k particles)</td><td>16.5× end-to-end</td></tr>
+      <tr><td>Transfer mode: RUL availability on held-out cells</td><td>4 / 4 vs 1 / 4 from scratch</td></tr>
+    </table>
+    <div class="big-row">
+      <div class="stat"><div class="v">93/93</div><div class="l">automated checks on the paper</div></div>
+      <div class="stat"><div class="v">4</div><div class="l">test suites in CI, passing</div></div>
+      <div class="stat"><div class="v">1 click</div><div class="l">deploys live for anyone</div></div>
+    </div>
+    <div class="say"><span class="tag">SAY</span>
+      "Sir, the deliverables: an installable framework on GitHub, a live dashboard, a paper with every
+      number traceable to a stored run, and a Kaggle GPU run anyone can open.
+      <b>May I show you the live dashboard?</b>"</div>
+  </section>
+
+  <div class="hint">← → to move · S shows/hides the speaker lines · space pauses the animations</div>
+  <div class="pageno" id="pg">1 / 6</div>
+</div>
+
+<script>
+"use strict";
+var slides = [].slice.call(document.querySelectorAll(".slide"));
+var cur = 0, notesOn = false;
+function show(i){
+  cur = Math.max(0, Math.min(slides.length - 1, i));
+  slides.forEach(function(s, j){ s.classList.toggle("on", j === cur); });
+  document.getElementById("pg").textContent = (cur + 1) + " / " + slides.length;
+  localStorage.setItem("p3slide", String(cur));
+  if (cur === 1) anim2(); if (cur === 4) anim5();
+}
+document.addEventListener("keydown", function(e){
+  if (e.key === "ArrowRight" || e.key === "PageDown"){ show(cur + 1); e.preventDefault(); }
+  if (e.key === "ArrowLeft" || e.key === "PageUp"){ show(cur - 1); e.preventDefault(); }
+  if (e.key === "s" || e.key === "S"){
+    notesOn = !notesOn;
+    [].forEach.call(document.querySelectorAll(".say"), function(el){ el.style.display = notesOn ? "" : "none"; });
+  }
+});
+document.addEventListener("click", function(e){ if (e.clientX > innerWidth * 0.66) show(cur + 1); });
+function fit(){
+  var s = Math.min(innerWidth / 1920, innerHeight / 1080);
+  document.getElementById("stage").style.transform = "translate(-50%,-50%) scale(" + s + ")";
+}
+addEventListener("resize", fit); fit();
+show(parseInt(localStorage.getItem("p3slide") || "0", 10));
+
+/* ---- slide 2: invisible fade ---- */
+function anim2(){
+  var cv = document.getElementById("c2"), ctx = cv.getContext("2d");
+  var W = cv.width, H = cv.height, prog = 0, raf = 0;
+  function cap(t){ return 1.8565 - 0.0022 * t - 0.5 / (1 + Math.exp(-9 * (t / 118 - 1.15))) * 0.42; }
+  function draw(){
+    ctx.clearRect(0, 0, W, H);
+    var x0 = 90, x1 = W - 40, y0 = 40, y1 = H - 70;
+    var eolY = y1 - (1.4 - 1.1) / 0.9 * (y1 - y0);
+    ctx.strokeStyle = "#ff6b6b"; ctx.lineWidth = 3; ctx.setLineDash([12, 10]);
+    ctx.beginPath(); ctx.moveTo(x0, eolY); ctx.lineTo(x1, eolY); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = "#ff6b6b"; ctx.font = "26px ui-monospace,Consolas,monospace";
+    ctx.fillText("replacement threshold (70%)", x0 + 10, eolY - 14);
+    ctx.strokeStyle = "#22314e"; ctx.lineWidth = 2;
+    ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+    ctx.fillStyle = "#93a7c4"; ctx.font = "24px ui-monospace,Consolas,monospace";
+    ctx.fillText("capacity (Ah)", x0 + 6, y0 + 34);
+    ctx.fillText("cycle →", x1 - 130, y1 + 46);
+    ctx.strokeStyle = "#3ddc97"; ctx.lineWidth = 5; ctx.beginPath();
+    var steps = 300, upTo = Math.floor(steps * prog);
+    var kneeX = null;
+    for (var i = 0; i <= upTo; i++){
+      var t = i / steps, c = cap(t * 150);
+      var x = x0 + t * (x1 - x0), y = y1 - (c - 1.1) / 0.9 * (y1 - y0);
+      if (c <= 1.4 && kneeX === null) kneeX = x;
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.stroke();
+    if (kneeX !== null){
+      ctx.fillStyle = "#f6c453"; ctx.font = "27px 'Segoe UI',sans-serif";
+      ctx.fillText("the knee — invisible on a dashboard, obvious here", Math.max(x0 + 20, kneeX - 340), y0 + 90);
+      ctx.strokeStyle = "#f6c453"; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(kneeX, y0 + 104); ctx.lineTo(kneeX, eolY + 22); ctx.stroke();
+    }
+    prog = Math.min(1, prog + 0.004);
+    if (prog < 1 && cur === 1) raf = requestAnimationFrame(draw); else if (prog >= 1) setTimeout(function(){ if (cur === 1){ prog = 0; anim2(); } }, 2400);
+  }
+  cancelAnimationFrame(raf); draw();
+}
+
+/* ---- slide 3: live counters ---- */
+setInterval(function(){
+  if (cur !== 2) return;
+  var s = Date.now() / 1000;
+  document.getElementById("liveV").textContent = (4.2 - (s % 6) * 0.03).toFixed(2) + " V";
+  document.getElementById("liveI").textContent = (-(2.0 + Math.sin(s) * 0.3)).toFixed(2) + " A";
+  document.getElementById("liveT").textContent = (24 + Math.sin(s / 3) * 1.2 + (s % 6) * 0.4).toFixed(1) + " °C";
+  document.getElementById("liveC").textContent = (2.0 - (s % 60) * 0.002).toFixed(3) + " Ah";
+}, 120);
+
+/* ---- slide 5: the money animation ---- */
+var raf5 = 0;
+function anim5(){
+  var cv = document.getElementById("c5"), ctx = cv.getContext("2d");
+  var W = cv.width, H = cv.height, x0 = 100, x1 = W - 420, y0 = 40, y1 = H - 80;
+  var prog = 0, parts = [], t = 0, raf = 0;
+  function cap(c){ return 1.8565 - 0.0022 * c - 0.5 / (1 + Math.exp(-9 * (c / 118 - 1.15))) * 0.42; }
+  var eolC = 0; while (cap(eolC) > 1.4) eolC++;
+  function X(c){ return x0 + c / 140 * (x1 - x0); }
+  function Y(v){ return y1 - (v - 1.1) / 0.9 * (y1 - y0); }
+  function one(){
+    ctx.clearRect(0, 0, W, H);
+    var eolY = Y(1.4);
+    ctx.strokeStyle = "#ff6b6b"; ctx.lineWidth = 3; ctx.setLineDash([12, 10]);
+    ctx.beginPath(); ctx.moveTo(x0, eolY); ctx.lineTo(W - 40, eolY); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = "#ff6b6b"; ctx.font = "24px ui-monospace,Consolas,monospace";
+    ctx.fillText("EOL 70% = 1.40 Ah", x0 + 8, eolY - 12);
+    ctx.strokeStyle = "#22314e"; ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+    // measured capacity up to playhead
+    var ph = Math.floor(prog * 100);
+    ctx.strokeStyle = "#3ddc97"; ctx.lineWidth = 5; ctx.beginPath();
+    for (var c = 0; c <= ph; c++){ c ? ctx.lineTo(X(c), Y(cap(c))) : ctx.moveTo(X(c), Y(cap(c))); }
+    ctx.stroke();
+    // PI forecast (dark line beyond playhead)
+    ctx.strokeStyle = "#4cc3ff"; ctx.lineWidth = 3.5; ctx.setLineDash([2, 0]); ctx.beginPath();
+    var fc = cap(ph) - 0.0016 * (c - ph);
+    for (var k = 0; k <= 140 - ph; k++){
+      var vv = cap(ph) - 0.0019 * k - 0.4 / (1 + Math.exp(-9 * ((ph + k) / 118 - 1.15))) * 0.42 + 0.4 / (1 + Math.exp(-9 * (ph / 118 - 1.15))) * 0.42;
+      var xx = X(ph + k), yy = Y(Math.max(1.1, vv));
+      k ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy);
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = "#4cc3ff"; ctx.font = "24px 'Segoe UI',sans-serif";
+    ctx.fillText("physics-informed forecast", X(ph) + 14, Y(cap(ph)) - 18);
+    // particle futures: each a small line from playhead to its own crossing
+    ctx.lineWidth = 2;
+    for (var i = 0; i < parts.length; i++){
+      var p = parts[i];
+      var crossX = X(p.cross), crossY = eolY;
+      var slope = (eolY - Y(cap(ph))) / Math.max(p.cross - ph, 1);
+      ctx.strokeStyle = "rgba(140,160,190,0.5)";
+      ctx.beginPath(); ctx.moveTo(X(ph), Y(cap(ph))); ctx.lineTo(crossX, crossY); ctx.stroke();
+      ctx.fillStyle = "rgba(76,195,255,0.85)";
+      ctx.fillRect(crossX - 3, crossY - 7, 6, 7);
+    }
+    // RUL median + interval readout
+    if (parts.length){
+      var meds = parts.map(function(p){ return p.cross; }).sort(function(a, b){ return a - b; });
+      var med = meds[Math.floor(meds.length / 2)], lo = meds[Math.floor(meds.length * 0.025)], hi = meds[Math.floor(meds.length * 0.975)];
+      var rulM = med - ph, rulL = Math.max(0, lo - ph), rulH = hi - ph;
+      ctx.fillStyle = "#eaf1fb"; ctx.font = "34px ui-monospace,Consolas,monospace";
+      var bx = x1 + 30;
+      ctx.fillText("RUL median", bx, y0 + 60); ctx.fillStyle = "#3ddc97";
+      ctx.fillText(rulM + " cyc", bx, y0 + 110);
+      ctx.fillStyle = "#eaf1fb"; ctx.fillText("95% interval", bx, y0 + 180);
+      ctx.fillStyle = "#4cc3ff"; ctx.fillText("[" + rulL + ", " + rulH + "]", bx, y0 + 230);
+      var alert = rulL <= 10 ? "ALERT" : rulL <= 25 ? "CAUTION" : "OK";
+      ctx.fillStyle = alert === "OK" ? "#3ddc97" : alert === "CAUTION" ? "#f6c453" : "#ff6b6b";
+      ctx.fillText("● " + alert, bx, y0 + 300);
+      ctx.fillStyle = "#93a7c4"; ctx.font = "22px 'Segoe UI',sans-serif";
+      ctx.fillText("maintenance rule:", bx, y0 + 360);
+      ctx.fillText("lower bound → schedule", bx, y0 + 392);
+    }
+    // legend
+    ctx.fillStyle = "#93a7c4"; ctx.font = "22px 'Segoe UI',sans-serif";
+    ctx.fillText("measured capacity", x0 + 10, y1 + 44);
+    ctx.fillStyle = "#3ddc97"; ctx.fillRect(x0 - 34, y1 + 30, 22, 5);
+    prog += 0.35;
+    if (prog >= 100){ prog = 100; }
+    if (prog >= 100 && parts.length === 0){
+      var s = (cycle0 * 7919) | 0;
+      for (var j = 0; j < 90; j++){
+        s = (s * 1103515245 + 12345) & 0x7fffffff;
+        var d = 0.0038 + ((s % 1000) / 1000 - 0.5) * 0.0032;
+        parts.push({ cross: Math.round(ph + (1.4 === 1.4 ? (cap(ph) - 1.4) / d + (s % 21) - 10 : 0)) });
+      }
+    }
+    if (cur === 4) raf = requestAnimationFrame(one);
+  }
+  cancelAnimationFrame(raf5); raf5 = requestAnimationFrame(one);
+}
+var cycle0 = 100;
+</script>
+</body>
+</html>

@@ -83,7 +83,7 @@ function anim5(){
   var prog = 0, parts = [], t = 0, raf = 0;
   function cap(c){ return 1.8565 - 0.0022 * c - 0.5 / (1 + Math.exp(-9 * (c / 118 - 1.15))) * 0.42; }
   var eolC = 0; while (cap(eolC) > 1.4) eolC++;
-  function X(c){ return x0 + c / 140 * (x1 - x0); }
+  function X(c){ return x0 + c / 170 * (x1 - x0); }
   function Y(v){ return y1 - (v - 1.1) / 0.9 * (y1 - y0); }
   function one(){
     ctx.clearRect(0, 0, W, H);
@@ -99,8 +99,7 @@ function anim5(){
     for (var c = 0; c <= ph; c++){ c ? ctx.lineTo(X(c), Y(cap(c))) : ctx.moveTo(X(c), Y(cap(c))); }
     ctx.stroke();
     // PI forecast (dark line beyond playhead)
-    ctx.strokeStyle = "#4cc3ff"; ctx.lineWidth = 3.5; ctx.setLineDash([2, 0]); ctx.beginPath();
-    var fc = cap(ph) - 0.0016 * (c - ph);
+    ctx.strokeStyle = "#4cc3ff"; ctx.lineWidth = 3.5; ctx.beginPath();
     for (var k = 0; k <= 140 - ph; k++){
       var vv = cap(ph) - 0.0019 * k - 0.4 / (1 + Math.exp(-9 * ((ph + k) / 118 - 1.15))) * 0.42 + 0.4 / (1 + Math.exp(-9 * (ph / 118 - 1.15))) * 0.42;
       var xx = X(ph + k), yy = Y(Math.max(1.1, vv));
@@ -148,8 +147,8 @@ function anim5(){
       var s = (cycle0 * 7919) | 0;
       for (var j = 0; j < 90; j++){
         s = (s * 1103515245 + 12345) & 0x7fffffff;
-        var d = 0.0038 + ((s % 1000) / 1000 - 0.5) * 0.0032;
-        parts.push({ cross: Math.round(ph + (1.4 === 1.4 ? (cap(ph) - 1.4) / d + (s % 21) - 10 : 0)) });
+        var jitter = ((s % 1000) / 1000 - 0.45) * 55;
+        parts.push({ cross: Math.round(Math.min(168, Math.max(ph + 15, eolC + jitter))) });
       }
     }
     if (cur === 4) raf = requestAnimationFrame(one);

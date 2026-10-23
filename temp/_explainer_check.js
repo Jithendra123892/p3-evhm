@@ -23,7 +23,10 @@ function fit(){
   document.getElementById("stage").style.transform = "translate(-50%,-50%) scale(" + s + ")";
 }
 addEventListener("resize", fit); fit();
-show(parseInt(localStorage.getItem("p3slide") || "0", 10));
+var startSlide = parseInt((location.hash || "").replace("#", ""), 10);
+if (!(startSlide >= 1 && startSlide <= slides.length))
+  startSlide = parseInt(localStorage.getItem("p3slide") || "0", 10) + 1;
+show(startSlide - 1);
 
 /* ---- slide 2: invisible fade ---- */
 function anim2(){
@@ -87,6 +90,7 @@ function anim5(){
   function Y(v){ return y1 - (v - 1.1) / 0.9 * (y1 - y0); }
   function one(){
     ctx.clearRect(0, 0, W, H);
+    try {
     var eolY = Y(1.4);
     ctx.strokeStyle = "#ff6b6b"; ctx.lineWidth = 3; ctx.setLineDash([12, 10]);
     ctx.beginPath(); ctx.moveTo(x0, eolY); ctx.lineTo(W - 40, eolY); ctx.stroke(); ctx.setLineDash([]);
@@ -141,9 +145,9 @@ function anim5(){
     ctx.fillStyle = "#93a7c4"; ctx.font = "22px 'Segoe UI',sans-serif";
     ctx.fillText("measured capacity", x0 + 10, y1 + 44);
     ctx.fillStyle = "#3ddc97"; ctx.fillRect(x0 - 34, y1 + 30, 22, 5);
-    prog += 0.35;
-    if (prog >= 100){ prog = 100; }
-    if (prog >= 100 && parts.length === 0){
+    // particle futures spawn on the first frame: panel + futures always visible,
+    // even if the browser throttles the animation
+    if (parts.length === 0){
       var s = (cycle0 * 7919) | 0;
       for (var j = 0; j < 90; j++){
         s = (s * 1103515245 + 12345) & 0x7fffffff;
@@ -151,6 +155,12 @@ function anim5(){
         parts.push({ cross: Math.round(Math.min(168, Math.max(ph + 15, eolC + jitter))) });
       }
     }
+    } catch (err) {
+      ctx.fillStyle = "#ff6b6b"; ctx.font = "26px ui-monospace,Consolas,monospace";
+      ctx.fillText("render error: " + err.message, x0, y0 + 40);
+    }
+    prog += 0.35;
+    if (prog >= 100){ prog = 100; }
     if (cur === 4) raf = requestAnimationFrame(one);
   }
   cancelAnimationFrame(raf5); raf5 = requestAnimationFrame(one);

@@ -155,7 +155,8 @@ function step(){
     capHist.push(capacityAt(cycle));
     if (capHist.length > 140) capHist.shift();
     runPF();
-    // physics check, once per cycle: PI output is clamped monotone (never rises);
+    // physics check, once per cycle: the PI stand-in follows the trend with a soft
+    // monotonicity penalty (a few raw rises slip through, ~0.08 — real measured 0.076);
     // a data-only LSTM chases the measurement noise and "recovers" ~36.6% of steps
     violStepsPI++;
     if (capHist[capHist.length - 1] > capHist[capHist.length - 2]) violPI++;

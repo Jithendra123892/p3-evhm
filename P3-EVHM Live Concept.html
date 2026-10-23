@@ -133,8 +133,9 @@
         <tr><td>PI-LSTM (ours)</td><td id="mae3">—</td><td><b id="v3" style="color:var(--acc)">0.000</b></td></tr>
         <tr><td>data-only LSTM</td><td id="mae2">—</td><td id="v2">—</td></tr>
       </table>
-      <div class="cap" style="margin-top:8px">V = fraction of predicted steps where capacity rises.
-        Measured on NASA PCoE grid: 0.366 → 0.076 mean with the physics loss.</div>
+      <div class="cap" style="margin-top:8px">V = share of predicted steps where capacity rises.
+        Live stand-in mirrors the physics-loss effect; measured on the NASA PCoE grid:
+        0.366 → 0.076 mean with the physics loss.</div>
     </div>
   </div>
 
@@ -374,7 +375,8 @@ function step(){
     capHist.push(capacityAt(cycle));
     if (capHist.length > 140) capHist.shift();
     runPF();
-    // physics check, once per cycle: PI output is clamped monotone (never rises);
+    // physics check, once per cycle: the PI stand-in follows the trend with a soft
+    // monotonicity penalty (a few raw rises slip through, ~0.08 — real measured 0.076);
     // a data-only LSTM chases the measurement noise and "recovers" ~36.6% of steps
     violStepsPI++;
     if (capHist[capHist.length - 1] > capHist[capHist.length - 2]) violPI++;

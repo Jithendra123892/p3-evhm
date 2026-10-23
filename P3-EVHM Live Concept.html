@@ -40,6 +40,8 @@
   .kv .r{color:var(--dim);font-size:10.5px;text-align:right}
   canvas.spark{width:100%;height:34px;display:block;margin-top:8px}
   .lbl{font-size:10.5px;color:var(--dim);letter-spacing:.8px;text-transform:uppercase;margin-top:10px}
+  .marginbar{height:8px;background:#1a2740;border-radius:4px;overflow:hidden;margin-top:4px}
+  #marginFill{height:8px;background:var(--acc);width:100%;border-radius:4px;transition:width .3s,background .3s}
 
   /* pipeline */
   .node{border:1px solid var(--line);border-radius:8px;padding:9px 12px;background:var(--panel2);
@@ -89,6 +91,7 @@
       <option value="1">1x</option><option value="4" selected>4x</option><option value="12">12x</option>
     </select>
     <button id="runBtn" class="primary">Pause</button>
+    <button id="resetBtn">Reset</button>
   </div>
 </header>
 
@@ -116,9 +119,11 @@
           </div>
         </div>
       </div>
-      <div class="lbl">Discharge voltage <span id="vSparkStat"></span></div>
+      <div class="lbl">Capacity fade <span id="capSparkStat" style="float:right;color:var(--acc)"></span></div>
+      <canvas id="capSpark" class="spark"></canvas>
+      <div class="lbl">Discharge voltage <span id="vSparkStat" style="float:right;color:var(--data)"></span></div>
       <canvas id="vSpark" class="spark"></canvas>
-      <div class="lbl">Temperature</div>
+      <div class="lbl">Temperature <span id="tSparkStat" style="float:right;color:var(--warn)"></span></div>
       <canvas id="tSpark" class="spark"></canvas>
     </div>
     <div class="panel">
@@ -146,7 +151,7 @@
       <span class="val">physics loss <b id="a3v">0.0000</b> · V <b id="a3V">0.000</b></span></div>
     <div class="edge"><span class="pulse"></span><span class="pulse"></span></div>
     <div class="node"><span><span class="id">A4</span> <span class="name">Particle filter engine</span></span>
-      <span class="val">N=<b id="aN">5000</b> · <b id="a4v">0</b> crossed · step <b id="a4s">0</b></span></div>
+      <span class="val">live N=<b id="aN">300</b> · <b id="a4v">0</b> crossed · step <b id="a4s">0</b></span></div>
     <div class="edge"><span class="pulse"></span><span class="pulse"></span></div>
     <div class="node"><span><span class="id">A5</span> <span class="name">Decision & alerts</span></span>
       <span class="val">state <b id="a5v">—</b></span></div>
@@ -182,6 +187,8 @@
         <div class="cap">median <b id="rulMed" style="color:var(--ink)">—</b> ·
           95% interval <b id="rulInt" style="color:var(--ink)">—</b> ·
           <span id="rulTrue">true —</span></div>
+        <div class="cap" style="margin-top:8px">lower-bound margin (cycles to threshold)</div>
+        <div class="marginbar"><div id="marginFill"></div></div>
       </div>
       <div class="alert ok" id="alertBox">OK — routine monitoring</div>
     </div>
@@ -242,10 +249,15 @@ function $(id){ return document.getElementById(id); }
 function set(id, v){ $(id).textContent = v; }
 
 /* ---------- sparks ---------- */
-function drawSpark(cv, arr, color, lo, hi){
+function drawSpark(cv, arr, color, lo, hi, thr, thrColor){
   var ctx = cv.getContext("2d");
   cv.width = cv.clientWidth || 280; cv.height = 34;
   ctx.clearRect(0, 0, cv.width, cv.height);
+  if (thr !== undefined && thr >= lo && thr <= hi){
+    var ty = cv.height - 3 - (thr - lo) / (hi - lo) * (cv.height - 8);
+    ctx.strokeStyle = thrColor || "#ef5a5a"; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(0, ty); ctx.lineTo(cv.width, ty); ctx.stroke(); ctx.setLineDash([]);
+  }
   if (arr.length < 2) return;
   ctx.strokeStyle = color; ctx.lineWidth = 1.4; ctx.beginPath();
   for (var i = 0; i < arr.length; i++){
@@ -292,41 +304,60 @@ function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0;
   var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
   return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
-/* ---------- PF canvas ---------- */
+/* ---------- PF canvas: crossing-cycle distribution ---------- */
+var pfBins = [], pfNBins = 26;
 function drawPF(){
   var cv = $("pfCanvas"), ctx = cv.getContext("2d");
-  cv.width = cv.clientWidth; cv.height = 150;
+  cv.width = cv.clientWidth || 600; cv.height = 150;
   ctx.clearRect(0, 0, cv.width, cv.height);
-  if (!particles.length) return;
-  var maxR = 0;
-  for (var i = 0; i < particles.length; i++) if (particles[i].x > 0 && particles[i].x > maxR) maxR = particles[i].x;
-  if (maxR < 5) maxR = 30;
-  // true EOL marker
-  var eolc = eolCycleIdx();
-  if (eolc){
-    var tx = Math.min(cv.width - 8, 8 + (eolc - cycle) / (maxR * 1.15) * (cv.width - 16));
-    if (eolc >= cycle){
-      ctx.strokeStyle = "#5c7091"; ctx.setLineDash([4, 4]);
-      ctx.beginPath(); ctx.moveTo(tx, 4); ctx.lineTo(tx, cv.height - 4); ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = "#8fa3bf"; ctx.font = "10px ui-monospace,Consolas,monospace";
-      ctx.fillText("true EOL", tx - 26, 14);
+  var W = cv.width, H = cv.height, padL = 8, padR = 8, baseY = H - 18;
+  var crossed = [];
+  for (var i = 0; i < particles.length; i++) if (particles[i].x > 0) crossed.push(particles[i].x);
+  var maxR = 30;
+  for (var j = 0; j < crossed.length; j++) if (crossed[j] > maxR) maxR = crossed[j];
+  maxR = Math.max(maxR, (rulHi || 0) * 1.05, 10) * 1.12;
+  var targets = [];
+  for (var b = 0; b < pfNBins; b++) targets.push(0);
+  for (var k = 0; k < crossed.length; k++){
+    var bi = Math.min(pfNBins - 1, Math.floor(crossed[k] / maxR * pfNBins));
+    targets[bi]++;
+  }
+  if (pfBins.length !== pfNBins) for (var b2 = 0; b2 < pfNBins; b2++) pfBins.push({ t: 0, d: 0 });
+  var peak = 1;
+  for (var b3 = 0; b3 < pfNBins; b3++){ pfBins[b3].t = targets[b3]; if (targets[b3] > peak) peak = targets[b3]; }
+  var bw = (W - padL - padR) / pfNBins;
+  for (var b4 = 0; b4 < pfNBins; b4++){
+    var bin = pfBins[b4];
+    bin.d += (bin.t - bin.d) * 0.35;
+    var h = bin.d / peak * (baseY - 26);
+    if (h > 0.5){
+      ctx.fillStyle = "rgba(56,189,248,.55)";
+      ctx.fillRect(padL + b4 * bw + 1, baseY - h, bw - 2, h);
     }
   }
-  for (var j = 0; j < particles.length; j++){
-    var p = particles[j];
-    var x = 8 + (p.x > 0 ? p.x : maxR * 1.12) / (maxR * 1.15) * (cv.width - 16);
-    var y = 12 + (j / particles.length) * (cv.height - 24);
-    ctx.fillStyle = p.x > 0 ? "rgba(56,189,248,.55)" : "rgba(92,112,145,.35)";
-    ctx.fillRect(x, y, 3, 2.2);
-  }
-  if (rulMed){
-    var mx = 8 + rulMed / (maxR * 1.15) * (cv.width - 16);
+  var xOf = function(r){ return padL + r / maxR * (W - padL - padR); };
+  if (rulLo !== null){
+    ctx.fillStyle = "rgba(52,211,153,.10)";
+    ctx.fillRect(xOf(rulLo), 8, Math.max(2, xOf(rulHi) - xOf(rulLo)), baseY - 8);
     ctx.strokeStyle = "#34d399"; ctx.lineWidth = 1.6;
-    ctx.beginPath(); ctx.moveTo(mx, 6); ctx.lineTo(mx, cv.height - 6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xOf(rulMed), 6); ctx.lineTo(xOf(rulMed), baseY); ctx.stroke();
     ctx.fillStyle = "#34d399"; ctx.font = "10px ui-monospace,Consolas,monospace";
-    ctx.fillText("median +" + rulMed, Math.min(mx + 4, cv.width - 62), 14);
+    ctx.fillText("median +" + rulMed, Math.min(xOf(rulMed) + 4, W - 66), 16);
   }
+  var eolc = eolCycleIdx();
+  if (eolc && eolc >= cycle){
+    var tx = Math.min(xOf(eolc - cycle), W - 4);
+    ctx.strokeStyle = "#5c7091"; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(tx, 4); ctx.lineTo(tx, baseY); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = "#8fa3bf"; ctx.font = "10px ui-monospace,Consolas,monospace";
+    ctx.fillText("true EOL", Math.max(2, tx - 30), H - 5);
+  }
+  ctx.strokeStyle = "#1e2d47"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(padL, baseY); ctx.lineTo(W - padR, baseY); ctx.stroke();
+  ctx.fillStyle = "#5c7091"; ctx.font = "10px ui-monospace,Consolas,monospace";
+  ctx.fillText("now", padL, H - 5);
+  var axLab = "cycles ahead \u2192", axX = W - padR - ctx.measureText(axLab).width;
+  ctx.fillText(axLab, axX, H - 5);
 }
 function eolCycleIdx(){
   var c = cycle;
@@ -343,6 +374,12 @@ function step(){
     capHist.push(capacityAt(cycle));
     if (capHist.length > 140) capHist.shift();
     runPF();
+    // physics check, once per cycle: PI output is clamped monotone (never rises);
+    // a data-only LSTM chases the measurement noise and "recovers" ~36.6% of steps
+    violStepsPI++;
+    if (capHist[capHist.length - 1] > capHist[capHist.length - 2]) violPI++;
+    violStepsData++;
+    if ((cycle * 2654435761 % 1000) < 366) violData++;
   }
   var q = capacityAt(cycle);
   var v = 4.2 - (2.0 - q) * 0.55 + (Math.sin(tick / 7) * 0.015) - tick % 6 * 0.012;
@@ -352,11 +389,8 @@ function step(){
   if (vHist.length > 90) vHist.shift();
   if (tHist.length > 90) tHist.shift();
 
-  // physics: capacity must never rise in the PI model; data-only occasionally "recovers"
-  violStepsPI++; if (capHist.length > 1 && capHist[capHist.length - 1] > capHist[capHist.length - 2]) violPI++;
-  if (tick % 17 === 0) violStepsData++;
-  var recBad = (tick % 23 === 0); if (recBad) violData++; violStepsData++;
-  var vPI = violPI / Math.max(violStepsPI, 1), vData = violData / Math.max(violStepsData, 1);
+  // live V display: PI output never rises (clamped monotone); data-only "recovers" ~36.6% (measured 0.366)
+  var vPI = violPI / Math.max(violStepsPI, 1), vData = violStepsData ? violData / violStepsData : 0.366;
 
   // A3 loss tick (simulated training curve converging)
   var loss = 0.02 * Math.exp(-tick / 260) + 0.0008 + Math.abs(Math.sin(tick / 9)) * 0.0004;
@@ -402,10 +436,14 @@ function step(){
     else { box.className = "alert ok"; box.textContent =
       "OK — lower 95% bound " + margin + " cycles: routine monitoring."; }
     set("a5v", margin <= 10 ? "ALERT" : margin <= 25 ? "CAUTION" : "OK");
+    var mf = $("marginFill"), frac = Math.max(0.04, Math.min(1, margin / 40));
+    mf.style.width = (frac * 100).toFixed(1) + "%";
+    mf.style.background = margin <= 10 ? "var(--bad)" : margin <= 25 ? "var(--warn)" : "var(--acc)";
   } else {
     rulBig.textContent = "—"; rulBig.className = "big";
     set("rulMed", "no crossing yet"); set("rulInt", "—"); set("rulTrue", "true —");
     set("a5v", "monitoring");
+    $("marginFill").style.width = "100%";
   }
 
   // pipeline counters
@@ -413,23 +451,32 @@ function step(){
   if (tick % 37 === 0) rejected++;                      // rare rejected record
   set("a2v", String(Math.max(0, cycle - 8)));
   set("a3v", loss.toFixed(4)); set("a3V", vPI.toFixed(3));
-  set("aN", "5000");
+  set("aN", "300");
   var crossedN = 0; for (var q2 = 0; q2 < particles.length; q2++) if (particles[q2].x > 0) crossedN++;
   set("a4v", String(crossedN)); set("a4s", String(tick % 6));
 
-  // physics table
-  set("v3", vPI.toFixed(3)); set("v2", vData.toFixed(3));
-  set("v2color", ""); $("v2").style.color = vData > 0.05 ? "var(--bad)" : "var(--muted)";
+  // physics table (live sim stand-in; measured grid values in the caption)
+  set("v3", vPI.toFixed(3));
+  var v2el = $("v2");
+  v2el.textContent = vData.toFixed(3);
+  v2el.style.color = vData > 0.05 ? "var(--bad)" : "var(--muted)";
   if (cycle > 20){
-    var err3 = Math.abs(capacityAt(cycle) - Math.min(capacityAt(cycle - 1), capacityAt(cycle)));
     maeSum3 += 0.012 + Math.abs(Math.sin(tick / 31)) * 0.004; maeN3++;
     set("mae3", (maeSum3 / maeN3).toFixed(4));
     set("mae2", (maeSum3 / maeN3 * 2.6 + 0.02).toFixed(4));
   }
 
   // sparks + PF canvas
-  drawSpark($("vSpark"), vHist, "#38bdf8", Math.min.apply(null, vHist) - 0.02, Math.max.apply(null, vHist) + 0.02);
-  drawSpark($("tSpark"), tHist, "#f5b93e", Math.min.apply(null, tHist) - 1, Math.max.apply(null, tHist) + 1);
+  drawSpark($("capSpark"), capHist, "#34d399", eolAh() - 0.06, profile().q0 + 0.06, eolAh(), "#ef5a5a");
+  $("capSparkStat").textContent = q.toFixed(3) + " Ah · EOL " + eolAh().toFixed(2);
+  if (vHist.length > 1){
+    drawSpark($("vSpark"), vHist, "#38bdf8", Math.min.apply(null, vHist) - 0.02, Math.max.apply(null, vHist) + 0.02);
+    $("vSparkStat").textContent = v.toFixed(2) + " V";
+  }
+  if (tHist.length > 1){
+    drawSpark($("tSpark"), tHist, "#f5b93e", Math.min.apply(null, tHist) - 1, Math.max.apply(null, tHist) + 1);
+    $("tSparkStat").textContent = t.toFixed(1) + " °C";
+  }
   drawPF();
 }
 
@@ -448,6 +495,35 @@ $("cellSel").addEventListener("change", function(){
 });
 $("thrSel").addEventListener("change", function(){ thrPct = parseInt(this.value, 10); runPF(); });
 $("speedSel").addEventListener("change", function(){ speed = parseInt(this.value, 10); });
+function seedCycle(n){
+  cycle = Math.max(1, n | 0);
+  capHist = [];
+  violPI = violStepsPI = violData = violStepsData = 0;
+  for (var c = 2; c <= cycle; c++){
+    capHist.push(capacityAt(c));
+    violStepsPI++;                        // same per-cycle accounting as the live loop
+    if (capacityAt(c) > capacityAt(c - 1)) violPI++;
+    violStepsData++;
+    if ((c * 2654435761 % 1000) < 366) violData++;
+  }
+  pfBins = []; runPF();
+}
+$("resetBtn").addEventListener("click", function(){
+  cycle = 1; tick = 0; acc = 0;
+  capHist = []; vHist = []; tHist = []; pfBins = [];
+  violPI = violStepsPI = violData = violStepsData = maeSum3 = maeN3 = 0; rejected = 0;
+  runPF(); step();
+});
+/* deep links, e.g. #cycle=80 or #cell=B0007&thr=80&speed=12&cycle=60 */
+(function(){
+  (location.hash || "").slice(1).split("&").forEach(function(kv){
+    var p = kv.split("="); if (p.length !== 2) return;
+    if (p[0] === "cell"){ cellId = p[1] === "B0007" ? "B0007" : "B0005"; $("cellSel").value = cellId; }
+    if (p[0] === "thr"){ thrPct = parseInt(p[1], 10) || 70; $("thrSel").value = String(thrPct); }
+    if (p[0] === "speed"){ speed = parseInt(p[1], 10) || 4; $("speedSel").value = String(speed); }
+    if (p[0] === "cycle") seedCycle(parseInt(p[1], 10) || 1);
+  });
+})();
 document.addEventListener("keydown", function(e){
   if (e.key === " "){ e.preventDefault(); $("runBtn").click(); }
 });

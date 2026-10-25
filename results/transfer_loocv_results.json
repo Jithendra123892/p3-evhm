@@ -10,7 +10,7 @@
       "rmse": 0.231,
       "V": 0.355,
       "rul_err": null,
-      "adapt_s": 1.654
+      "adapt_s": 1.966
     },
     "zero_shot": {
       "name": "zero_shot",
@@ -26,7 +26,7 @@
       "rmse": 0.2457,
       "V": 0.0,
       "rul_err": 20,
-      "adapt_s": 0.121
+      "adapt_s": 0.135
     },
     "full_finetune": {
       "name": "full_finetune_30ep",
@@ -34,7 +34,7 @@
       "rmse": 0.5456,
       "V": 0.0,
       "rul_err": 41,
-      "adapt_s": 0.245
+      "adapt_s": 0.283
     },
     "invariants": {
       "body_unchanged_after_head_ft": true,
@@ -46,7 +46,7 @@
       "transfer_zero_violations": true,
       "headft_speedup_over_2x": true
     },
-    "cell_wall_s": 32.3
+    "cell_wall_s": 15.6
   },
   "B0006": {
     "theta_pct": 70,
@@ -59,7 +59,7 @@
       "rmse": 0.2474,
       "V": 0.0,
       "rul_err": null,
-      "adapt_s": 1.47
+      "adapt_s": 2.237
     },
     "zero_shot": {
       "name": "zero_shot",
@@ -75,7 +75,7 @@
       "rmse": 0.4602,
       "V": 0.0,
       "rul_err": 28,
-      "adapt_s": 0.103
+      "adapt_s": 0.14
     },
     "full_finetune": {
       "name": "full_finetune_30ep",
@@ -83,7 +83,7 @@
       "rmse": 0.4064,
       "V": 0.0,
       "rul_err": 24,
-      "adapt_s": 0.207
+      "adapt_s": 0.285
     },
     "invariants": {
       "body_unchanged_after_head_ft": true,
@@ -95,7 +95,7 @@
       "transfer_zero_violations": true,
       "headft_speedup_over_2x": true
     },
-    "cell_wall_s": 5.5
+    "cell_wall_s": 8.3
   },
   "B0007": {
     "theta_pct": 80,
@@ -108,7 +108,7 @@
       "rmse": 0.2562,
       "V": 0.017,
       "rul_err": null,
-      "adapt_s": 2.618
+      "adapt_s": 1.95
     },
     "zero_shot": {
       "name": "zero_shot",
@@ -124,7 +124,7 @@
       "rmse": 0.0973,
       "V": 0.0,
       "rul_err": 42,
-      "adapt_s": 0.119
+      "adapt_s": 0.148
     },
     "full_finetune": {
       "name": "full_finetune_30ep",
@@ -132,7 +132,7 @@
       "rmse": 0.0709,
       "V": 0.0,
       "rul_err": 6,
-      "adapt_s": 0.206
+      "adapt_s": 0.25
     },
     "invariants": {
       "body_unchanged_after_head_ft": true,
@@ -144,7 +144,7 @@
       "transfer_zero_violations": true,
       "headft_speedup_over_2x": true
     },
-    "cell_wall_s": 10.3
+    "cell_wall_s": 8.4
   },
   "B0018": {
     "theta_pct": 70,
@@ -157,7 +157,7 @@
       "rmse": 0.1843,
       "V": 0.027,
       "rul_err": null,
-      "adapt_s": 5.638
+      "adapt_s": 2.113
     },
     "zero_shot": {
       "name": "zero_shot",
@@ -173,7 +173,7 @@
       "rmse": 0.2742,
       "V": 0.0,
       "rul_err": 16,
-      "adapt_s": 0.473
+      "adapt_s": 0.154
     },
     "full_finetune": {
       "name": "full_finetune_30ep",
@@ -181,7 +181,7 @@
       "rmse": 0.2999,
       "V": 0.0,
       "rul_err": 20,
-      "adapt_s": 1.003
+      "adapt_s": 0.29
     },
     "invariants": {
       "body_unchanged_after_head_ft": true,
@@ -193,11 +193,11 @@
       "transfer_zero_violations": true,
       "headft_speedup_over_2x": true
     },
-    "cell_wall_s": 16.7
+    "cell_wall_s": 8.6
   },
   "_summary": {
     "mean_mae_ratio": 1.46,
-    "mean_speed_ratio": 8.0,
+    "mean_speed_ratio": 7.5,
     "ft_mae_per_cell": [
       0.509,
       0.344,
@@ -205,6 +205,6 @@
       0.2415
     ],
     "all_invariants": true,
-    "total_wall_s": 64.8
+    "total_wall_s": 40.9
   }
 }

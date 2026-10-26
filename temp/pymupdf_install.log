@@ -1,0 +1,22 @@
+Collecting pymupdf
+  Using cached pymupdf-2.0-cp311-abi3-win_amd64.whl.metadata (25 kB)
+Requirement already satisfied: networkx in C:\Users\jithe\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages (from pymupdf) (3.6.1)
+Requirement already satisfied: numpy in C:\Users\jithe\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages (from pymupdf) (2.4.3)
+Requirement already satisfied: onnxruntime in C:\Users\jithe\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages (from pymupdf) (1.30.0)
+Requirement already satisfied: pyyaml in C:\Users\jithe\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages (from pymupdf) (6.0.3)
+Collecting pymupdf-layout==2.0 (from pymupdf)
+  Using cached pymupdf_layout-2.0-py3-none-any.whl.metadata (368 bytes)
+Requirement already satisfied: psutil in C:\Users\jithe\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages (from pymupdf) (7.2.2)
+Requirement already satisfied: tabulate in C:\Users\jithe\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages (from pymupdf) (0.10.0)
+Collecting pymupdf4llm==2.0 (from pymupdf)
+  Using cached pymupdf4llm-2.0-py3-none-any.whl.metadata (360 bytes)
+Requirement already satisfied: flatbuffers in C:\Users\jithe\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages (from onnxruntime->pymupdf) (25.12.19)
+Requirement already satisfied: packaging in C:\Users\jithe\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages (from onnxruntime->pymupdf) (26.0)
+Requirement already satisfied: protobuf>=4.25.8 in C:\Users\jithe\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages (from onnxruntime->pymupdf) (6.33.6)
+Downloading pymupdf-2.0-cp311-abi3-win_amd64.whl (63.0 MB)
+   ---------------------------------------- 63.0/63.0 MB 11.6 MB/s  0:00:05
+Downloading pymupdf_layout-2.0-py3-none-any.whl (927 bytes)
+Downloading pymupdf4llm-2.0-py3-none-any.whl (904 bytes)
+Installing collected packages: pymupdf4llm, pymupdf-layout, pymupdf
+
+Successfully installed pymupdf-2.0 pymupdf-layout-2.0 pymupdf4llm-2.0
